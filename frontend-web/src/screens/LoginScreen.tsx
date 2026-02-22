@@ -24,10 +24,14 @@ const LoginScreen: FC = () => {
 
       if (data?.login) {
         const { token, user } = data.login;
+
+        localStorage.setItem("token", token);
+
         setUser(user);
         setToken(token);
+
         navigate('/events');
-      }
+     }
     } catch (err) {
       console.error('Login error:', err);
     }

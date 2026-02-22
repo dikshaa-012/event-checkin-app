@@ -13,7 +13,11 @@ const httpLink = createHttpLink({
 });
 
 const authLink = setContext((_, { headers }) => {
-  const token = useStore.getState().token;
+  const zustandToken = useStore.getState().token;
+  const localToken = localStorage.getItem("token");
+
+  const token = zustandToken || localToken;
+
   return {
     headers: {
       ...headers,
