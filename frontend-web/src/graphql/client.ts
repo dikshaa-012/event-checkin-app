@@ -9,7 +9,7 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
 });
 
 const httpLink = createHttpLink({
-  uri: 'http://192.168.29.69:5000/graphql',
+  uri: 'https://event-checkin-app-qjj9.onrender.com/graphql',
 });
 
 const authLink = setContext((_, { headers }) => {
