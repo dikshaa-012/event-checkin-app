@@ -1,0 +1,72 @@
+.admin-panel {
+  padding: 20px;
+}
+
+.admin-panel h1 {
+  color: #333;
+}
+
+.create-form {
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 400px;
+}
+
+.create-form input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.events-list {
+  margin-top: 20px;
+}
+
+.event-item {
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin: 10px 0;
+  border-radius: 8px;
+}
+
+.event-item h3 {
+  margin: 0 0 10px 0;
+}
+
+.event-item button {
+  margin-right: 10px;
+  padding: 5px 10px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.event-item button:hover {
+  background: #0056b3;
+}
+
+.stats, .logs {
+  margin-top: 30px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.logs div {
+  margin: 5px 0;
+}
+
+.charts {
+  margin-top: 30px;
+}
+
+.chart-container {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}

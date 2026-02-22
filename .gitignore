@@ -1,24 +1,17 @@
+# Root-level ignores
+
 # Dependencies
 node_modules
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
-# Environment variables
+# Environment
 .env
 .env.local
 .env.*.local
 
-# Prisma
-/generated/
-.prisma/
-prisma/migrations
-
-# Build output
-/dist
-/build
-
-# IDE
+# IDE / Editor
 .vscode
 .idea
 *.sublime-project
@@ -43,11 +36,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Testing
-coverage
-.nyc_output
-
 # Misc
 .cache
 .eslintcache
 .prettierignore
+New folder/
+dist/

@@ -9,25 +9,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
+  password  String?  // Add for hashed password
+  role      Role     @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Many-to-many relationship with events
   events    Event[]  @relation("EventAttendees")
+  // Attendance logs
+  attendanceLogs AttendanceLog[]
 }
 
 model Event {
-  id        String   @id @default(cuid())
-  name      String
-  location  String
-  startTime DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String
+  location    String
+  startTime   DateTime
+  category    String?  // Add category
+  isClosed    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Many-to-many relationship with users
-  attendees User[]   @relation("EventAttendees")
+  attendees   User[]   @relation("EventAttendees")
+  // Attendance logs
+  attendanceLogs AttendanceLog[]
+}
+
+model AttendanceLog {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }

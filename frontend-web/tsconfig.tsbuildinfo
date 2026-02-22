@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/socket.ts","./src/graphql/client.ts","./src/graphql/mutations.ts","./src/graphql/queries.ts","./src/screens/adminpanelscreen.tsx","./src/screens/eventdetailscreen.tsx","./src/screens/eventlistscreen.tsx","./src/screens/loginscreen.tsx","./src/screens/publiceventscreen.tsx","./src/store/usestore.ts"],"version":"5.9.3"}

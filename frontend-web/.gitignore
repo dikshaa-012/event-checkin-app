@@ -4,19 +4,17 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
+# Production
+/dist
+/build
+
 # Environment variables
 .env
 .env.local
 .env.*.local
 
-# Prisma
-/generated/
-.prisma/
-prisma/migrations
-
-# Build output
-/dist
-/build
+# Vite
+.vite
 
 # IDE
 .vscode
@@ -49,5 +47,6 @@ coverage
 
 # Misc
 .cache
+.parcel-cache
 .eslintcache
 .prettierignore
