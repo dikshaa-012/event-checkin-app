@@ -92,13 +92,45 @@ const resolvers = {
         },
 
         login: async (_: any, { email, password }: any) => {
-            const user = await prisma.user.findUnique({ where: { email }, select: { id: true, name: true, email: true, password: true, role: true, createdAt: true, updatedAt: true } });
-            if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
-                throw new Error('Invalid credentials');
+            let user = await prisma.user.findUnique({
+                where: { email }
+        });
+
+            if (!user) {
+                const hashedPassword = await bcrypt.hash(password, 10);
+
+                user = await prisma.user.create({
+                    data: {
+                        name: email.split("@")[0],
+                        email,
+                        password: hashedPassword,
+                        role: "USER"
+                    }
+                });
+            } else {
+                if (!user.password || !(await bcrypt.compare(password, user.password))) {
+                    throw new Error("Invalid credentials");
+                }
             }
+
             const secret = ensureJwtSecret();
-            const token = jwt.sign({ userId: user.id }, secret, { expiresIn: '7d' });
-            return { token, user };
+            const token = jwt.sign(
+                { userId: user.id },
+                secret,
+                { expiresIn: "7d" }
+            );
+
+            return {
+                token,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    createdAt: user.createdAt,
+                    updatedAt: user.updatedAt
+                }
+            };
         },
 
         joinEvent: async (_: any, { eventId }: any, context: any) => {
