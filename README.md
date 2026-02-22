@@ -144,14 +144,6 @@ DATABASE_URL="postgresql://postgres:password@localhost:5432/eventdb"
 JWT_SECRET="your-secret-key-here"
 ```
 
-### Frontend (config in src/)
-Update API URL in:
-- `src/graphql/client.ts` - GraphQL endpoint
-- `src/socket.ts` - WebSocket URL
-
-Default: `http://192.168.29.69:5000` (for local network)  
-Change to `http://localhost:5000` for localhost development
-
 ---
 
 ## 🔄 How It Works
@@ -285,28 +277,40 @@ Deploy to:
 
 ## 📝 Database Schema
 
-### Users
-```prisma
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  createdAt DateTime @default(now())
-  events    Event[]  @relation("EventAttendees")
+  id             String          @id @default(cuid())
+  name           String
+  email          String          @unique
+  password       String?
+  role           Role            @default(USER)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  events         Event[]         @relation("EventAttendees")
+  attendanceLogs AttendanceLog[]
 }
-```
 
-### Events
-```prisma
 model Event {
-  id        String   @id @default(cuid())
-  name      String
-  location  String
-  startTime DateTime
-  createdAt DateTime @default(now())
-  attendees User[]   @relation("EventAttendees")
+  id             String          @id @default(cuid())
+  name           String
+  location       String
+  startTime      DateTime
+  category       String?
+  isClosed       Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  attendees      User[]          @relation("EventAttendees")
+  attendanceLogs AttendanceLog[]
 }
-```
+
+model AttendanceLog {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
 
 ---
 
@@ -322,7 +326,7 @@ model Event {
 
 ---
 
-## � Scalability Considerations
+## 📈 Scalability Considerations
 
 This application is designed with scalability in mind for production deployment:
 
