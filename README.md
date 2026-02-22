@@ -1,5 +1,7 @@
 # 🎫 Real-Time Event Check-In App
 
+[![CI](https://github.com/dikshaa-012/event-checkin-app/actions/workflows/ci.yml/badge.svg)](https://github.com/dikshaa-012/event-checkin-app/actions)
+
 A full-stack real-time event check-in application with a modern web frontend and GraphQL backend. Users can browse events, join in real-time, and see live participant updates as others join/leave.
 
 **Frontend:** React 19 + Vite + React Router  
@@ -86,6 +88,23 @@ real-time-event-checkin-app/
 - **PostgreSQL** - Database
 - **JWT** - Token-based authentication
 - **TypeScript** - Type safety
+
+---
+
+## ⚙️ CI/CD Pipeline
+
+This project uses **GitHub Actions** for Continuous Integration (CI).
+
+On every push to the `main` branch, the pipeline automatically:
+
+- Installs dependencies
+- Generates the Prisma client
+- Builds the TypeScript project
+- Validates compilation to prevent broken deployments
+
+This ensures code stability, automated validation, and production-ready build verification before deployment.
+
+The CI status badge at the top of this README reflects the current build health.
 
 ---
 
