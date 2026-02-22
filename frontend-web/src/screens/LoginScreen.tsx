@@ -24,6 +24,8 @@ const LoginScreen: FC = () => {
 
       if (data?.login) {
         const { token, user } = data.login;
+        console.log("LOGIN RESPONSE USER:", user);   
+        console.log("USER ROLE:", user.role);  
 
         localStorage.setItem("token", token);
 
