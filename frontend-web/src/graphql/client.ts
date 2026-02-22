@@ -9,7 +9,7 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
 });
 
 const httpLink = createHttpLink({
-  uri: 'https://event-checkin-app-qjj9.onrender.com/graphql',
+  uri: `${import.meta.env.VITE_API_URL}/graphql`,
 });
 
 const authLink = setContext((_, { headers }) => {
