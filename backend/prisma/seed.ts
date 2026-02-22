@@ -8,7 +8,7 @@ async function seed() {
     // Create users if they don't exist
     const adminUser = await prisma.user.upsert({
         where: { email: 'admin@example.com' },
-        update: {},
+        update: { role: 'ADMIN' },
         create: {
             id: 'admin1',
             name: 'Admin User',
@@ -20,7 +20,7 @@ async function seed() {
 
     const regularUser = await prisma.user.upsert({
         where: { email: 'john@example.com' },
-        update: {},
+        update: { role: 'USER' },
         create: {
             id: 'user1',
             name: 'John Doe',
