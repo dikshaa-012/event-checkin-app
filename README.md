@@ -1,402 +1,311 @@
-# 🎫 Real-Time Event Check-In App
+# Event Check-In
 
-[![CI](https://github.com/dikshaa-012/event-checkin-app/actions/workflows/ci.yml/badge.svg)](https://github.com/dikshaa-012/event-checkin-app/actions)
+Real-time event discovery and attendance tracking built as a full-stack TypeScript application. Authenticated users can discover events, join or leave them, and see live attendee activity. Administrators can manage events and review attendance analytics.
 
-A full-stack real-time event check-in application with a modern web frontend and GraphQL backend. Users can browse events, join in real-time, and see live participant updates as others join/leave.
+> **Repository:** `dikshaa-012/event-checkin-app`
 
-**Frontend:** React 19 + Vite + React Router  
-**Backend:** Node.js + Express + GraphQL + Prisma + PostgreSQL  
-**Real-time:** Socket.IO with WebSocket support
+## Why this project
 
----
+Event check-in is modeled as two connected workflows:
 
-## 🎯 Features
+1. **Persistent attendance:** GraphQL mutations store the attendee relationship and create or close attendance logs in PostgreSQL.
+2. **Live presence:** Socket.IO broadcasts room-scoped join/leave activity and the current connected count to everyone viewing the same event.
 
-✅ **User Authentication** - Email/password login with JWT tokens & bcrypt hashing  
-✅ **Role-Based Access Control** - USER and ADMIN roles with protected routes  
-✅ **Event Management** - Full CRUD operations for events (admin only)  
-✅ **Real-time Participants** - See who's joined/left instantly via Socket.IO  
-✅ **Live Metrics** - Real-time attendee count, join notifications, online indicators  
-✅ **Event Categories & Filtering** - Filter by category, search by name, date filtering  
-✅ **Attendance Logs** - Track join/leave timestamps and duration calculation  
-✅ **Analytics Dashboard** - Total attendees, join rate, peak concurrent users, participation stats  
-✅ **CSV Export** - Admin can export attendee lists as CSV  
-✅ **Public Event Pages** - Shareable event links without login  
-✅ **Event Closure** - Admins can close events to prevent further joins  
-✅ **Live Rooms** - WebSocket rooms per event for efficient broadcasting  
-✅ **Responsive UI** - Modern web interface with Vite  
-✅ **Persistent State** - Zustand for client-side state management  
-✅ **Type-Safe** - Full TypeScript across frontend & backend  
-✅ **Synchronized Joins** - Handles concurrent joins without race conditions  
+This separation keeps the database authoritative for attendance history while giving the UI immediate presence updates.
 
----
+## Features
 
-## 📁 Project Structure
+### Attendees
 
+- Register and sign in with email/password authentication.
+- Passwords are hashed with `bcrypt`; sessions use JWTs with a seven-day expiry.
+- Browse events with category, name/location search, and date filters.
+- View event details, location, date/time, attendee count, and participant initials.
+- Join or leave an event.
+- See live attendee counts and join/leave notifications through Socket.IO.
+- Review upcoming and past joined events.
+- Update profile name and email.
+- Open public, read-only event pages at `/public/:slug`.
+
+### Administrators
+
+- Role-based access control using `USER` and `ADMIN` roles.
+- Create, delete, and close events.
+- Review per-event statistics:
+  - total attendees
+  - completed-session join rate
+  - peak concurrent attendance
+  - participation percentage
+- Inspect attendance logs with join time, leave time, and duration.
+- Export current attendees as CSV.
+- View attendee and join-activity charts in the admin panel.
+
+## Tech stack
+
+| Area | Technologies |
+| --- | --- |
+| Web UI | React 19, TypeScript, Vite, React Router 6 |
+| Data fetching | Apollo Client, GraphQL |
+| Client state | Zustand; TanStack Query is installed for future/server-state use |
+| Real-time | Socket.IO client/server |
+| API | Node.js, Express, Apollo Server, GraphQL |
+| Persistence | PostgreSQL, Prisma ORM |
+| Authentication | JWT and bcrypt |
+| Visualization/export | Recharts and `csv-writer` |
+| Delivery | GitHub Actions CI |
+
+## Architecture
+
+```text
+React/Vite browser
+  ├─ Apollo Client ── HTTP ──> Express + Apollo GraphQL ──> Prisma ──> PostgreSQL
+  └─ Socket.IO client ───────> Socket.IO server ───────────> event rooms
 ```
+
+### Backend request flow
+
+1. The frontend sends a GraphQL request to `/graphql`.
+2. The auth link attaches `Authorization: Bearer <JWT>` when a token exists.
+3. The backend verifies the token and resolves the user from the database.
+4. Resolvers enforce authentication and admin authorization where required.
+5. Prisma reads or updates `User`, `Event`, and `AttendanceLog` records.
+
+### Join flow
+
+1. The user selects **Join this event**.
+2. `joinEvent` connects the user to the event and creates an open attendance log if needed.
+3. The client emits `join_event` to the Socket.IO event room.
+4. The server updates its in-memory room presence list and broadcasts `user_joined` and `live_count`.
+5. Other event-detail screens refresh their GraphQL event data and update their live count.
+
+The resolver prevents duplicate event relationships and duplicate open logs for the same user/event. Socket presence also de-duplicates users by ID.
+
+## Project structure
+
+```text
 real-time-event-checkin-app/
-├── backend/                 # Node.js + Express API
-│   ├── src/
-│   │   ├── server.ts       # Apollo Server + HTTP setup
-│   │   ├── socket.ts       # Socket.IO real-time logic
-│   │   ├── context.ts      # GraphQL context
-│   │   └── graphql/
-│   │       ├── typeDefs.ts # GraphQL schema
-│   │       └── resolvers.ts # Query & mutation resolvers
+├── backend/
 │   ├── prisma/
-│   │   └── schema.prisma   # Database schema
-│   └── package.json
-│
-├── frontend-web/            # React + Vite web app
-│   ├── src/
-│   │   ├── screens/        # Page components
-│   │   │   ├── LoginScreen.tsx
-│   │   │   ├── EventListScreen.tsx
-│   │   │   └── EventDetailScreen.tsx
-│   │   ├── graphql/        # Apollo Client queries & mutations
-│   │   ├── store/          # Zustand state management
-│   │   ├── styles/         # CSS styling
-│   │   ├── App.tsx         # Main app with React Router
-│   │   └── main.tsx        # Entry point
-│   ├── vite.config.ts
-│   └── package.json
-│
-└── README.md
-
+│   │   ├── schema.prisma       # PostgreSQL data model
+│   │   ├── seed.ts             # Development users and sample events
+│   │   └── migrations/         # Prisma migrations
+│   └── src/
+│       ├── server.ts           # Express, Apollo, HTTP server bootstrap
+│       ├── context.ts          # JWT extraction and user context
+│       ├── socket.ts           # Socket.IO rooms and presence events
+│       └── graphql/
+│           ├── typeDefs.ts     # GraphQL schema
+│           └── resolvers.ts    # Queries, mutations, analytics, CSV export
+├── frontend-web/
+│   └── src/
+│       ├── App.tsx             # Routes and providers
+│       ├── graphql/            # Apollo client, queries, mutations
+│       ├── store/              # Zustand auth and attendance state
+│       ├── screens/            # Login, discovery, detail, admin, profile pages
+│       ├── components/         # Shared UI such as event cards and header
+│       └── styles/             # Screen and global styles
+├── .github/workflows/ci.yml    # Backend and frontend build checks
+└── app.json                    # Expo update/runtime metadata retained by the project
 ```
 
----
+## Data model
 
-## 🛠️ Tech Stack
+- **User:** identity, unique email, bcrypt password hash, and `USER`/`ADMIN` role.
+- **Event:** name, location, start time, optional category, closure state, and many-to-many attendees.
+- **AttendanceLog:** one attendance session with `joinedAt`, optional `leftAt`, and a computed duration.
 
-### Frontend (frontend-web/)
-- **React 19** - UI library
-- **Vite** - Build tool & dev server
-- **React Router v6** - Client-side routing
-- **Apollo Client** - GraphQL client
-- **Socket.IO Client** - Real-time WebSocket
-- **Zustand** - Lightweight state management
-- **TypeScript** - Type safety
-- **CSS** - Styling with modern gradients
+Deleting a user or event cascades to its attendance logs. The event attendee relationship is separate from historical attendance logs, so leaving an event removes the current relationship while preserving the session record.
 
-### Backend
-- **Node.js** - Runtime
-- **Express.js** - Web framework
-- **Apollo Server** - GraphQL server
-- **Socket.IO** - WebSocket server
-- **Prisma** - ORM & database toolkit
-- **PostgreSQL** - Database
-- **JWT** - Token-based authentication
-- **TypeScript** - Type safety
+## GraphQL API
 
----
+### Queries
 
-## ⚙️ CI/CD Pipeline
+| Query | Purpose | Access |
+| --- | --- | --- |
+| `events(category, search, date)` | Filtered event discovery | Public |
+| `event(id)` | Event details and attendees | Public |
+| `publicEvent(slug)` | Public event lookup; current slug is the event ID | Public |
+| `me` | Current authenticated user | Authenticated |
+| `eventStats(eventId)` | Attendance metrics | Admin |
+| `attendanceLogs(eventId)` | Session history | Admin |
 
-This project uses **GitHub Actions** for Continuous Integration (CI).
+### Mutations
 
-On every push to the `main` branch, the pipeline automatically:
+| Mutation | Purpose | Access |
+| --- | --- | --- |
+| `login` / `register` | Authenticate or create a user | Public |
+| `updateProfile` | Update name/email | Authenticated |
+| `joinEvent` / `leaveEvent` | Start/end attendance | Authenticated |
+| `createEvent` / `updateEvent` | Manage event details | Admin |
+| `deleteEvent` / `closeEvent` | Remove or close registration | Admin |
+| `exportAttendees` | Return attendee CSV text | Admin |
 
-- Installs dependencies
-- Generates the Prisma client
-- Builds the TypeScript project
-- Validates compilation to prevent broken deployments
+### Socket.IO events
 
-This ensures code stability, automated validation, and production-ready build verification before deployment.
+| Event | Direction | Purpose |
+| --- | --- | --- |
+| `join_room` / `leave_room` | Client → server | Subscribe to an event room |
+| `join_event` / `leave_event` | Client → server | Announce persisted attendance changes |
+| `user_joined` / `user_left` | Server → room | Broadcast participant activity |
+| `live_count` | Server → room/client | Broadcast connected count |
+| `get_participants` | Client → server | Request current in-memory participants |
+| `event_participants` | Server → client | Return the requested participant list |
 
-The CI status badge at the top of this README reflects the current build health.
+`joinEvent`/`leaveEvent` and `join_event`/`leave_event` are intentionally separate: GraphQL persists attendance, while Socket.IO updates live presence.
 
----
-
-## 🚀 Quick Start
+## Local setup
 
 ### Prerequisites
-- Node.js 18+ & npm
-- PostgreSQL running locally
-- Git
 
-### Backend Setup
+- Node.js 20+ (the CI workflow builds with Node 20)
+- npm
+- PostgreSQL
 
-```bash
-cd backend
+### 1. Configure the backend
 
-# Install dependencies
-npm install
+Create `backend/.env`:
 
-# Setup environment
-cp .env.example .env  # or create .env with DATABASE_URL and JWT_SECRET
-
-# Run migrations
-npm run migrate
-
-# Seed database (optional)
-npm run prisma:seed
-
-# Start dev server
-npm run dev
-```
-
-Backend runs on `http://localhost:5000`  
-GraphQL endpoint: `http://localhost:5000/graphql`
-
-### Frontend Setup
-
-```bash
-cd frontend-web
-
-# Install dependencies
-npm install
-
-# Start dev server
-npm run dev
-```
-
-Frontend runs on `http://localhost:3000`
-
----
-
-## 📋 Environment Variables
-
-### Backend (.env)
 ```env
 DATABASE_URL="postgresql://postgres:password@localhost:5432/eventdb"
-JWT_SECRET="your-secret-key-here"
+DIRECT_URL="postgresql://postgres:password@localhost:5432/eventdb"
+JWT_SECRET="replace-with-a-long-random-secret"
+PORT=5000
 ```
 
----
+`DIRECT_URL` is used by the Prisma datasource and should point to the same database unless your deployment requires a separate direct connection.
 
-## 🔄 How It Works
+### 2. Install and initialize the backend
 
-### User Flow
-1. **Login** → GraphQL mutation creates/fetches user, returns JWT token
-2. **Browse Events** → Apollo Client queries event list
-3. **View Details** → Navigate to event, listen for socket changes
-4. **Join Event** → GraphQL mutation + Socket.IO emission
-5. **Real-time Updates** → Socket.IO broadcasts user_joined/user_left
-
-### Socket.IO Events
-- **`joinEvent`** - User joins event room (sends user data)
-- **`leaveRoom`** - User leaves event room
-- **`user_joined`** - Broadcast when user joins (received by room)
-- **`user_left`** - Broadcast when user leaves (received by room)
-- **`get_participants`** - Request current participant list
-- **`event_participants`** - Receive all participants (handles race conditions)
-
-### Race Condition Handling
-If 2 users join simultaneously:
-1. Both emit `joinEvent` → added to backend tracking
-2. Both emit `get_participants` → receive full list from backend
-3. Both receive broadcasts of each other joining
-4. UI deduplicates to show correct count
-
----
-
-## 📚 API Reference
-
-### GraphQL Mutations
-
-**Login**
-```graphql
-mutation Login($email: String!, $password: String!) {
-  login(email: $email, password: $password) {
-    token
-    user { id name }
-  }
-}
+```powershell
+cd backend
+npm install
+npm run migrate
+npm run seed
+npm run dev
 ```
 
-**Join Event**
-```graphql
-mutation JoinEvent($eventId: ID!) {
-  joinEvent(eventId: $eventId) {
-    id name attendees { id name }
-  }
-}
+Backend URLs:
+
+- Health check: `http://localhost:5000/`
+- GraphQL: `http://localhost:5000/graphql`
+- Socket.IO: `http://localhost:5000`
+
+Available backend scripts:
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Run TypeScript server with respawn |
+| `npm run build` | Compile TypeScript to `dist/` |
+| `npm start` | Run compiled production server |
+| `npm run generate` | Generate Prisma Client |
+| `npm run migrate` | Apply committed migrations |
+| `npm run seed` | Seed development users/events |
+| `npm run studio` | Open Prisma Studio |
+
+### 3. Configure and run the web app
+
+Create `frontend-web/.env.local`:
+
+```env
+VITE_API_URL=http://localhost:5000
 ```
 
-### GraphQL Queries
+Then run:
 
-**Get Events**
-```graphql
-query GetEvents {
-  events {
-    id name location startTime attendees { id name }
-  }
-}
+```powershell
+cd frontend-web
+npm install
+npm run dev
 ```
 
-**Get Current User**
-```graphql
-query GetMe {
-  me { id name email }
-}
+The Vite dev server is normally available at `http://localhost:5173`. The frontend uses `VITE_API_URL` for both GraphQL and Socket.IO; do not include `/graphql` in that value.
+
+Available frontend scripts:
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start Vite development server |
+| `npm run build` | Type-check and create production assets |
+| `npm run preview` | Serve the production build locally |
+| `npm run lint` | Run ESLint with warnings treated as errors |
+
+### Development preview mode
+
+For a UI-only demo without a running backend, start Vite with:
+
+```powershell
+$env:VITE_DEV_PREVIEW="true"
+npm run dev
 ```
 
----
+Preview mode is enabled only during development and uses local fixtures from `frontend-web/src/preview.ts`. It is not a replacement for the API-backed flow.
 
-## 🧪 Testing
+### Seed accounts
 
-### Manual Testing
-1. Login with any email (auto-creates user)
-2. Open app in 2 browser windows (same user or different)
-3. Both join same event → should see both participants in real-time
-4. One leaves → other sees removal immediately
+The seed script creates these development accounts with password `password`:
 
-### Socket.IO Testing
-- Browser DevTools → Network tab → WS
-- Can see `joinEvent`, `user_joined`, `get_participants` messages in real-time
+| Role | Email |
+| --- | --- |
+| Admin | `admin@example.com` |
+| User | `john@example.com` |
 
----
+Change these credentials before sharing a deployed environment.
 
-## 🌐 Deployment
+## CI and validation
 
-### Frontend (Vite)
-```bash
-npm run build    # Creates optimized dist/
-npm run preview  # Test production build locally
+GitHub Actions runs on pushes to `main` and pull requests:
+
+- backend: `npm ci`, Prisma Client generation, `npm run build`
+- frontend: `npm ci`, `npm run build`
+
+Local validation:
+
+```powershell
+cd backend
+npm run build
+
+cd ..\frontend-web
+npm run build
+npm run lint
 ```
 
-Deploy `dist/` folder to:
-- Vercel
-- Netlify
-- AWS S3 + CloudFront
-- GitHub Pages
+The current frontend build reports a Vite chunk-size warning for the main JavaScript bundle, but completes successfully. The project does not currently contain an automated unit or integration test suite.
 
-### Backend
-```bash
-npm run build    # Compile TypeScript to dist/
-npm start        # Run production server
-```
+## Production considerations
 
-Deploy to:
-- Heroku
-- AWS EC2
-- DigitalOcean
-- Railway
-- Render
+The current implementation is suitable for a portfolio/demo deployment, but the following should be addressed before production:
 
----
+- Replace wildcard CORS origins with an allowlist and configure credentials intentionally.
+- Use HTTPS and secure, httpOnly cookie-based token storage where appropriate.
+- Add rate limiting, structured validation, and centralized error handling.
+- Move Socket.IO participant state to a shared store/adapter such as Redis before horizontal scaling; the current list is process-local.
+- Add pagination and indexes for large event and attendance datasets.
+- Add automated resolver, authorization, real-time, and end-to-end tests.
+- Avoid exposing development seed credentials in deployed databases.
+- Add observability for database, GraphQL, and WebSocket failures.
+- Wire the shared role-aware context into the Apollo HTTP server; the current bootstrap verifies a JWT but only passes the user ID, so admin GraphQL operations need this integration fixed before deployment.
+- Enforce `isClosed` in the `joinEvent` resolver as well as the frontend so clients cannot bypass event closure through a direct API request.
+- Replace the current demo-friendly behavior that auto-creates a user during `login` when the email is unknown with explicit registration-only account creation.
 
-## 🔒 Security Notes
+## Resume-ready summary
 
-⚠️ **Development Configuration:**
-- CORS allows all origins (`*`)
-- Cleartext HTTP enabled for Android
-- JWT validation on header
+**Project description**
 
-**For Production:**
-- Set specific CORS origins
-- Use HTTPS only
-- Environment-specific config
-- Rate limiting
-- Input validation
-- Secure token storage
+> Built a full-stack real-time event check-in platform with React, TypeScript, GraphQL, Prisma, PostgreSQL, and Socket.IO. Implemented JWT/bcrypt authentication, role-based admin workflows, live event-room presence, attendance history, analytics, and CSV export.
 
----
+**Resume bullets**
 
-## 📝 Database Schema
+- Engineered a TypeScript React/Vite frontend and Node.js GraphQL backend for event discovery, registration, attendance, profiles, and public event sharing.
+- Implemented JWT authentication with bcrypt password hashing and `USER`/`ADMIN` authorization across GraphQL resolvers and protected routes.
+- Designed a Prisma/PostgreSQL attendance model that separates current event membership from durable join/leave session logs and computed durations.
+- Built Socket.IO event rooms that broadcast participant joins, leaves, and live counts, with client-side refreshes and duplicate prevention for concurrent activity.
+- Delivered an admin analytics dashboard with total attendance, completion rate, peak concurrency, participation percentage, activity charts, attendance logs, event closure, and CSV export.
+- Added GitHub Actions CI to install dependencies, generate Prisma Client, and build both backend and frontend on every pull request.
 
-model User {
-  id             String          @id @default(cuid())
-  name           String
-  email          String          @unique
-  password       String?
-  role           Role            @default(USER)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  events         Event[]         @relation("EventAttendees")
-  attendanceLogs AttendanceLog[]
-}
+**Skills to list**
 
-model Event {
-  id             String          @id @default(cuid())
-  name           String
-  location       String
-  startTime      DateTime
-  category       String?
-  isClosed       Boolean         @default(false)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  attendees      User[]          @relation("EventAttendees")
-  attendanceLogs AttendanceLog[]
-}
+`React` · `TypeScript` · `Vite` · `React Router` · `Apollo Client` · `GraphQL` · `Node.js` · `Express` · `Apollo Server` · `Socket.IO` · `Prisma` · `PostgreSQL` · `JWT` · `bcrypt` · `Zustand` · `Recharts` · `GitHub Actions`
 
-model AttendanceLog {
-  id        String   @id @default(cuid())
-  userId    String
-  eventId   String
-  joinedAt  DateTime @default(now())
-  leftAt    DateTime?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-}
+## License
 
----
-
-## 🐛 Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Can't connect to backend | Check IP address, ensure backend running on port 5000 |
-| Invalid date displayed | Backend sending null/invalid startTime, check DB |
-| Participants not updating | Verify Socket.IO connected, check Network tab |
-| User appears before join | Fixed - socket.emit moved to handleJoin |
-| Module not found | Run `npm install` in respective directory |
-
----
-
-## 📈 Scalability Considerations
-
-This application is designed with scalability in mind for production deployment:
-
-### Horizontal Scaling
-- **Stateless API**: All backend services are stateless, enabling easy horizontal scaling via load balancers
-- **WebSocket Room Isolation**: Socket.IO rooms per event prevent cross-event interference and allow room-based scaling
-- **Database Indexing**: Optimized queries with proper indexing on `eventId`, `userId`, and timestamps
-
-### Performance Optimizations
-- **Connection Pooling**: Prisma handles database connection pooling automatically
-- **GraphQL Batching**: Apollo Server supports query batching and caching
-- **Real-time Efficiency**: WebSocket events are scoped to event rooms, reducing unnecessary broadcasts
-
-### Monitoring & Analytics
-- **Live Metrics**: Built-in real-time analytics for attendee tracking
-- **Attendance Logs**: Comprehensive logging for business intelligence
-- **Error Handling**: Proper error boundaries and logging for production monitoring
-
-### Production Deployment
-- **Rate Limiting**: Ready for implementation of request rate limiting
-- **Caching Layer**: Can integrate Redis for session and query caching
-- **CDN Support**: Static assets can be served via CDN for global distribution
-
-### Database Considerations
-- **Read Replicas**: PostgreSQL read replicas can be added for analytics queries
-- **Partitioning**: Event data can be partitioned by date for large-scale deployments
-- **Backup Strategy**: Automated backups with point-in-time recovery
-
----
-
-## �📄 License
-
-MIT - Feel free to use and modify
-
----
-
-## 🤝 Contributing
-
-1. Create feature branch (`git checkout -b feature/amazing-feature`)
-2. Commit changes (`git commit -m 'Add amazing feature'`)
-3. Push to branch (`git push origin feature/amazing-feature`)
-4. Open Pull Request
-
----
-
-## 📞 Support
-
-For issues or questions:
-- Check the Troubleshooting section
-- Review Socket.IO events in browser DevTools
-- Check backend console for errors
-- Verify database connection & migrations
-
-Happy coding! 🎉
+MIT

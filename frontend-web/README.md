@@ -1,47 +1,37 @@
 # Event Check-In Web App
 
-A React + Vite web application for real-time event check-in with WebSocket support.
+React/Vite frontend for the real-time event check-in platform. See the [root README](../README.md) for the complete architecture, API, backend setup, and resume-ready project summary.
 
-## Features
-- User login/authentication
-- View events
-- Join events
-- Real-time participant updates via Socket.IO
-- Responsive design
+## Local development
 
-## Getting Started
-
-### Install Dependencies
 ```bash
 npm install
-```
-
-### Development
-```bash
 npm run dev
 ```
 
-Runs on `http://localhost:3000` by default.
+Create `.env.local` before starting the dev server:
 
-### Build
-```bash
-npm run build
+```env
+VITE_API_URL=http://localhost:5000
 ```
 
-### Preview
+The value is used for both Apollo GraphQL requests (`/graphql`) and Socket.IO connections. The Vite dev server normally runs at `http://localhost:5173`.
+
+## Scripts
+
 ```bash
-npm preview
+npm run build    # Type-check and create production assets
+npm run preview  # Serve the production build locally
+npm run lint     # Run ESLint
 ```
 
-## Architecture
-- **Frontend**: React 19 + Vite
-- **Routing**: React Router v6
-- **GraphQL**: Apollo Client
-- **Real-time**: Socket.IO Client
-- **State Management**: Zustand
-- **Styling**: CSS
+## Frontend architecture
 
-## Configuration
-Update the API URL in `src/graphql/client.ts` and `src/socket.ts` to match your backend.
+- **React 19 + TypeScript:** screen and component UI
+- **React Router:** login, event discovery, detail, profile, admin, and public routes
+- **Apollo Client:** GraphQL queries/mutations with JWT headers
+- **Socket.IO Client:** live event-room counts and join/leave notifications
+- **Zustand:** authenticated user, token, joined events, and attendee counts
+- **Vite:** development server and production bundling
 
-Default: `http://192.168.29.69:5000`
+For a backend-free UI walkthrough during development, set `VITE_DEV_PREVIEW=true`. This uses local fixtures from `src/preview.ts`.
