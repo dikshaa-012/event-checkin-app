@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { gql } from '@apollo/client';
 import client from '../graphql/client';
+import { PREVIEW_MODE, PREVIEW_USER } from '../preview';
 
 type User = {
   id: string;
@@ -19,6 +20,7 @@ type Store = {
   leaveEvent: (eventId: string) => Promise<boolean>;
   setUser: (user: User) => void;
   setToken: (token: string) => void;
+  setJoinedEventIds: (eventIds: string[]) => void;
 };
 
 const JOIN_EVENT_MUTATION = gql`
@@ -38,20 +40,26 @@ const LEAVE_EVENT_MUTATION = gql`
 `;
 
 export const useStore = create<Store>((set: any, get: any) => ({
-  isLoggedIn: false,
-  user: null,
-  token: null,
-  joinedEventIds: [],
+  isLoggedIn: PREVIEW_MODE,
+  user: PREVIEW_MODE ? PREVIEW_USER : null,
+  token: PREVIEW_MODE ? 'preview-token' : null,
+  joinedEventIds: PREVIEW_MODE ? ['preview-design-night', 'preview-supper-club'] : [],
   login: () => set({ isLoggedIn: true }),
   logout: () => set({ isLoggedIn: false, user: null, token: null, joinedEventIds: [] }),
   setUser: (user: User) => set({ user }),
   setToken: (token: string) => set({ token }),
+  setJoinedEventIds: (joinedEventIds: string[]) => set({ joinedEventIds }),
   joinEvent: async (eventId: string) => {
     try {
-      console.log("Calling GraphQL join mutation");
       const user = get().user;
       const token = get().token;
       if (!user || !token) return false;
+      if (PREVIEW_MODE) {
+        set((state: any) => ({
+          joinedEventIds: state.joinedEventIds.includes(eventId) ? state.joinedEventIds : [...state.joinedEventIds, eventId],
+        }));
+        return true;
+      }
 
       await client.mutate({
         mutation: JOIN_EVENT_MUTATION,
@@ -78,6 +86,12 @@ export const useStore = create<Store>((set: any, get: any) => ({
       const user = get().user;
       const token = get().token;
       if (!user || !token) return false;
+      if (PREVIEW_MODE) {
+        set((state: any) => ({
+          joinedEventIds: state.joinedEventIds.filter((id: string) => id !== eventId),
+        }));
+        return true;
+      }
 
       await client.mutate({
         mutation: LEAVE_EVENT_MUTATION,

@@ -2,77 +2,35 @@ import { useState, type FC, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useMutation } from '@apollo/client';
-import { LOGIN_MUTATION } from '../graphql/mutations';
+import { LOGIN_MUTATION, REGISTER_MUTATION } from '../graphql/mutations';
 import '../styles/Auth.css';
 
 const LoginScreen: FC = () => {
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-
   const setUser = useStore((state) => state.setUser);
   const setToken = useStore((state) => state.setToken);
+  const [loginMutation, loginState] = useMutation(LOGIN_MUTATION);
+  const [registerMutation, registerState] = useMutation(REGISTER_MUTATION);
+  const loading = loginState.loading || registerState.loading;
+  const error = loginState.error || registerState.error;
 
-  const [loginMutation, { loading, error }] = useMutation(LOGIN_MUTATION);
-
-  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    try {
-      const { data } = await loginMutation({
-        variables: { email, password },
-      });
-
-      if (data?.login) {
-        const { token, user } = data.login;
-        console.log("LOGIN RESPONSE USER:", user);   
-        console.log("USER ROLE:", user.role);  
-
-        localStorage.setItem("token", token);
-
-        setUser(user);
-        setToken(token);
-
-        navigate('/events');
-     }
-    } catch (err) {
-      console.error('Login error:', err);
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const result = isRegistering ? await registerMutation({ variables: { name, email, password } }) : await loginMutation({ variables: { email, password } });
+    const auth = result.data?.login || result.data?.register;
+    if (auth) {
+      localStorage.setItem('token', auth.token);
+      setUser(auth.user);
+      setToken(auth.token);
+      navigate('/events');
     }
   };
 
-  return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h1>Event Check-In</h1>
-        <form onSubmit={handleLogin}>
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e: FormEvent<HTMLInputElement>) => setEmail(e.currentTarget.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e: FormEvent<HTMLInputElement>) => setPassword(e.currentTarget.value)}
-            />
-          </div>
-          <button type="submit" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-          {error && <div className="error">{error.message}</div>}
-        </form>
-      </div>
-    </div>
-  );
+  return <div className="auth-page"><div className="auth-art"><span className="brand static-brand"><span className="brand-mark">✦</span> Gatherly</span><div><span className="auth-star">✦</span><h1>Make room<br />for <em>memories.</em></h1><p>Discover the people, places and moments that make your week feel a little brighter.</p></div><small>EVENTS MADE FOR YOUR PEOPLE</small></div><div className="auth-panel"><div className="auth-card"><span className="eyebrow">{isRegistering ? 'WELCOME TO THE COMMUNITY' : 'WELCOME BACK'}</span><h2>{isRegistering ? 'Create your account' : 'Let’s get you out there'}</h2><p className="auth-intro">{isRegistering ? 'Start finding experiences worth showing up for.' : 'Sign in to discover what’s happening around you.'}</p><form onSubmit={handleSubmit}>{isRegistering && <div className="form-group"><label htmlFor="name">Your name</label><input id="name" type="text" value={name} onChange={(event) => setName(event.target.value)} required placeholder="What should we call you?" /></div>}<div className="form-group"><label htmlFor="email">Email address</label><input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="you@example.com" /></div><div className="form-group"><label htmlFor="password">Password</label><input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={6} placeholder="At least 6 characters" /></div>{error && <div className="error">{error.message}</div>}<button className="primary-button" type="submit" disabled={loading}>{loading ? 'One moment...' : isRegistering ? 'Create account →' : 'Continue →'}</button></form><p className="auth-switch">{isRegistering ? 'Already have an account?' : 'New to Gatherly?'} <button onClick={() => setIsRegistering(!isRegistering)}>{isRegistering ? 'Sign in' : 'Create an account'}</button></p></div></div></div>;
 };
 
 export default LoginScreen;

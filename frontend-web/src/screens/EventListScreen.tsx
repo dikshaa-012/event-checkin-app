@@ -1,84 +1,79 @@
-import { type FC, useState, useEffect } from 'react';
+import { type FC, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@apollo/client';
-import { useNavigate } from 'react-router-dom';
+import AppHeader from '../components/AppHeader';
+import EventCard, { type EventSummary } from '../components/EventCard';
 import { GET_EVENTS } from '../graphql/queries';
-import { useStore } from '../store/useStore';
+import { PREVIEW_EVENTS, PREVIEW_MODE } from '../preview';
 import '../styles/EventList.css';
 
-type Event = {
-  id: string;
-  name: string;
-  location: string;
-  startTime: string;
-  category?: string;
-  attendeeCount: number;
-  isClosed: boolean;
-};
+const categories = ['All', 'Tech', 'Music', 'Sports', 'Arts'];
 
 const EventListScreen: FC = () => {
-  const navigate = useNavigate();
-  const user = useStore((state) => state.user);
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [date, setDate] = useState('');
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data, loading, error, refetch } = useQuery<{ events: Event[] }>(GET_EVENTS, {
-    variables: { category: category || undefined, search: debouncedSearch || undefined, date: date || undefined }
+  const { data, loading, error, refetch } = useQuery<{ events: EventSummary[] }>(GET_EVENTS, {
+    variables: { category: category === 'All' ? undefined : category, search: debouncedSearch || undefined, date: date || undefined },
   });
-
-  if (loading) return <div className="loading">Loading events...</div>;
-  if (error) return <div className="error">Error loading events</div>;
-  if (!data?.events || data.events.length === 0) return <div className="no-events">No events found</div>;
+  const events = useMemo(() => {
+    if (!PREVIEW_MODE) return data?.events || [];
+    const normalizedSearch = debouncedSearch.trim().toLowerCase();
+    return PREVIEW_EVENTS.filter((event) => {
+      const matchesCategory = category === 'All' || event.category === category;
+      const matchesSearch = !normalizedSearch || `${event.name} ${event.location} ${event.category || ''}`.toLowerCase().includes(normalizedSearch);
+      const matchesDate = !date || event.startTime.startsWith(date);
+      return matchesCategory && matchesSearch && matchesDate;
+    });
+  }, [category, data?.events, date, debouncedSearch]);
+  const featured = events.slice(0, 2);
+  const categoriesInData = useMemo(() => new Set(events.map((event) => event.category).filter(Boolean)), [events]);
+  const visibleCategories = categories.filter((item) => item === 'All' || categoriesInData.has(item));
 
   return (
-    <div className="event-list">
-      <h1>Events</h1>
-      {user?.role === 'ADMIN' && (
-        <button onClick={() => navigate('/admin')}>Admin Panel</button>
-      )}
-      <div className="filters">
-        <input
-          type="text"
-          placeholder="Search events"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          <option value="">All Categories</option>
-          <option value="Tech">Tech</option>
-          <option value="Music">Music</option>
-          <option value="Sports">Sports</option>
-        </select>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
-        <button onClick={() => refetch()}>Filter</button>
-      </div>
-      <div className="events-grid">
-        {data.events.map((event) => (
-          <div key={event.id} className="event-card">
-            <h2>{event.name}</h2>
-            <p><strong>Location:</strong> {event.location}</p>
-            <p><strong>Time:</strong> {event.startTime ? new Date(event.startTime).toLocaleString() : 'TBD'}</p>
-            <p><strong>Category:</strong> {event.category || 'N/A'}</p>
-            <p><strong>Attendees:</strong> {event.attendeeCount}</p>
-            {event.isClosed && <p style={{ color: 'red' }}>Event Closed</p>}
-            <button onClick={() => navigate(`/event/${event.id}`, { state: { name: event.name } })}>
-              View Details
-            </button>
+    <div className="app-shell">
+      <AppHeader />
+      <main className="page-content discovery-page">
+        <section className="hero-section">
+          <div className="hero-copy">
+            <p className="eyebrow">MAKE ROOM FOR FUN</p>
+            <h1>Find your next<br /><em>favourite</em> experience<span className="heading-dot">.</span></h1>
+            <p className="hero-subtitle">A little inspiration for your calendar, from people and communities you love.</p>
           </div>
-        ))}
-      </div>
+          <div className="hero-art" aria-hidden="true"><span>✦</span><strong>Good times<br />are ahead</strong><small>discover · join · enjoy</small></div>
+        </section>
+
+        <section className="discovery-controls" aria-label="Find events">
+          <label className="search-field"><span>⌕</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search events, places or vibes" /></label>
+          <label className="date-field"><span>◷</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} aria-label="Filter by date" /></label>
+          <button className="filter-button" onClick={() => refetch()}>Search</button>
+        </section>
+        <div className="category-row" aria-label="Event categories">
+          {visibleCategories.map((item) => <button key={item} className={category === item ? 'category-chip selected' : 'category-chip'} onClick={() => setCategory(item)}>{item}</button>)}
+        </div>
+
+        {loading && !PREVIEW_MODE && <div className="state-card">Finding wonderful events...</div>}
+        {error && !PREVIEW_MODE && <div className="state-card state-error">We couldn't load events. Please try again.</div>}
+        {!loading && !error && !events.length && <div className="state-card"><span className="state-icon">✦</span><h2>No events found</h2><p>Try a different search or category.</p></div>}
+        {(!loading || PREVIEW_MODE) && events.length > 0 && (
+          <>
+            <section className="section-block">
+              <div className="section-heading"><div><p className="eyebrow">HANDPICKED FOR YOU</p><h2>Featured events</h2></div><span className="section-count">{featured.length} picks</span></div>
+              <div className="featured-grid">{featured.map((event) => <EventCard key={event.id} event={event} featured />)}</div>
+            </section>
+            <section className="section-block">
+              <div className="section-heading"><div><p className="eyebrow">WHAT'S HAPPENING</p><h2>Upcoming events</h2></div><span className="section-count">{events.length} events</span></div>
+              <div className="events-grid">{events.map((event) => <EventCard key={event.id} event={event} />)}</div>
+            </section>
+          </>
+        )}
+      </main>
     </div>
   );
 };
