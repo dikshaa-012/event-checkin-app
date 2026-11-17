@@ -8,6 +8,7 @@ import { PREVIEW_EVENTS, PREVIEW_MODE } from '../preview';
 
 const MyEventsScreen: FC = () => {
   const joinedEventIds = useStore((state) => state.joinedEventIds);
+  const eventAttendeeCounts = useStore((state) => state.eventAttendeeCounts);
   const { data, loading, error } = useQuery<{ events: EventSummary[] }>(GET_EVENTS);
   const events = PREVIEW_MODE ? PREVIEW_EVENTS : data?.events || [];
   const joined = events.filter((event) => joinedEventIds.includes(event.id));
@@ -29,11 +30,11 @@ const MyEventsScreen: FC = () => {
           <>
             <section className="section-block">
               <div className="section-heading"><h2>Coming up</h2><span>{upcoming.length} events</span></div>
-              {upcoming.length ? <div className="events-grid">{upcoming.map((event) => <EventCard key={event.id} event={event} joined />)}</div> : <div className="empty-panel"><span>☀</span><h3>No upcoming events yet</h3><p>Find something lovely to do and it will appear here.</p></div>}
+              {upcoming.length ? <div className="events-grid">{upcoming.map((event) => <EventCard key={event.id} event={event} joined attendeeCount={eventAttendeeCounts[event.id]} />)}</div> : <div className="empty-panel"><span>☀</span><h3>No upcoming events yet</h3><p>Find something lovely to do and it will appear here.</p></div>}
             </section>
             <section className="section-block">
               <div className="section-heading"><h2>Past events</h2><span>{past.length} events</span></div>
-              {past.length ? <div className="events-grid">{past.map((event) => <EventCard key={event.id} event={event} joined />)}</div> : <p className="muted-copy">Your event history will show up here.</p>}
+              {past.length ? <div className="events-grid">{past.map((event) => <EventCard key={event.id} event={event} joined attendeeCount={eventAttendeeCounts[event.id]} />)}</div> : <p className="muted-copy">Your event history will show up here.</p>}
             </section>
           </>
         )}

@@ -4,6 +4,7 @@ import AppHeader from '../components/AppHeader';
 import EventCard, { type EventSummary } from '../components/EventCard';
 import { GET_EVENTS } from '../graphql/queries';
 import { PREVIEW_EVENTS, PREVIEW_MODE } from '../preview';
+import { useStore } from '../store/useStore';
 import '../styles/EventList.css';
 
 const categories = ['All', 'Tech', 'Music', 'Sports', 'Arts'];
@@ -13,6 +14,7 @@ const EventListScreen: FC = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [date, setDate] = useState('');
+  const eventAttendeeCounts = useStore((state) => state.eventAttendeeCounts);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -65,11 +67,11 @@ const EventListScreen: FC = () => {
           <>
             <section className="section-block">
               <div className="section-heading"><div><p className="eyebrow">HANDPICKED FOR YOU</p><h2>Featured events</h2></div><span className="section-count">{featured.length} picks</span></div>
-              <div className="featured-grid">{featured.map((event) => <EventCard key={event.id} event={event} featured />)}</div>
+              <div className="featured-grid">{featured.map((event) => <EventCard key={event.id} event={event} featured attendeeCount={eventAttendeeCounts[event.id]} />)}</div>
             </section>
             <section className="section-block">
               <div className="section-heading"><div><p className="eyebrow">WHAT'S HAPPENING</p><h2>Upcoming events</h2></div><span className="section-count">{events.length} events</span></div>
-              <div className="events-grid">{events.map((event) => <EventCard key={event.id} event={event} />)}</div>
+              <div className="events-grid">{events.map((event) => <EventCard key={event.id} event={event} attendeeCount={eventAttendeeCounts[event.id]} />)}</div>
             </section>
           </>
         )}

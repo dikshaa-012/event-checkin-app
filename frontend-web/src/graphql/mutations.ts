@@ -7,6 +7,7 @@ export const LOGIN_MUTATION = gql`
       user {
         id
         name
+        email
         role
       }
     }
@@ -20,8 +21,20 @@ export const REGISTER_MUTATION = gql`
       user {
         id
         name
+        email
         role
       }
+    }
+  }
+`;
+
+export const UPDATE_PROFILE = gql`
+  mutation UpdateProfile($name: String!, $email: String!) {
+    updateProfile(name: $name, email: $email) {
+      id
+      name
+      email
+      role
     }
   }
 `;

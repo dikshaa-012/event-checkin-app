@@ -91,6 +91,24 @@ const resolvers = {
             return { token, user };
         },
 
+        updateProfile: async (_: any, { name, email }: any, context: any) => {
+            if (!context.user) throw new Error('Not authenticated');
+
+            const existing = await prisma.user.findFirst({
+                where: {
+                    email,
+                    NOT: { id: context.user.id },
+                },
+            });
+            if (existing) throw new Error('Email is already in use');
+
+            return prisma.user.update({
+                where: { id: context.user.id },
+                data: { name, email },
+                select: { id: true, name: true, email: true, role: true },
+            });
+        },
+
         login: async (_: any, { email, password }: any) => {
             let user = await prisma.user.findUnique({
                 where: { email }

@@ -19,7 +19,7 @@ const AppHeader: FC = () => {
       {PREVIEW_MODE && <span className="preview-indicator">Preview mode · local fixtures</span>}
       <button className="brand" onClick={() => navigate('/events')} aria-label="Go to event discovery">
         <span className="brand-mark">✦</span>
-        <span>Gatherly</span>
+        <span>Event Check-In</span>
       </button>
       <nav className="main-nav" aria-label="Main navigation">
         <NavLink to="/events" className={({ isActive }) => isActive ? 'active' : ''}>Explore</NavLink>

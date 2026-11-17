@@ -1,20 +1,21 @@
 import { useEffect, useState, type FC } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { GET_EVENT } from '../graphql/queries';
 import { useStore } from '../store/useStore';
 import socket from '../socket';
 import AppHeader from '../components/AppHeader';
-import { formatEventDate, getEventCoverClass } from '../components/EventCard';
+import { formatEventDate, getEventCoverClass, type EventSummary } from '../components/EventCard';
 import { PREVIEW_EVENTS, PREVIEW_MODE } from '../preview';
 import '../styles/EventDetail.css';
 
 type Participant = { id: string; name: string; email: string };
-type EventDetails = { id: string; name: string; location: string; startTime: string; category?: string | null; attendees: Participant[]; attendeeCount: number; isClosed: boolean };
+type EventDetails = EventSummary & { attendees?: Participant[] };
 
 const EventDetailScreen: FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useStore((state) => state.user);
   const joinedEventIds = useStore((state) => state.joinedEventIds);
   const joinEvent = useStore((state) => state.joinEvent);
@@ -22,7 +23,10 @@ const EventDetailScreen: FC = () => {
   const [liveCount, setLiveCount] = useState(0);
   const [notifications, setNotifications] = useState<string[]>([]);
   const { data, loading, error, refetch } = useQuery<{ event: EventDetails }>(GET_EVENT, { variables: { id: eventId }, skip: !eventId });
-  const event = data?.event || (PREVIEW_MODE ? PREVIEW_EVENTS.find((previewEvent) => previewEvent.id === eventId) : undefined);
+  const stateEvent = (location.state as { event?: EventSummary } | null)?.event;
+  const event: EventDetails | undefined = data?.event
+    || (stateEvent ? { ...stateEvent, attendees: [] } : undefined)
+    || (PREVIEW_MODE ? PREVIEW_EVENTS.find((previewEvent) => previewEvent.id === eventId) : undefined);
   const isJoined = Boolean(eventId && joinedEventIds.includes(eventId));
 
   useEffect(() => {
@@ -60,7 +64,7 @@ const EventDetailScreen: FC = () => {
   };
 
   if (loading && !PREVIEW_MODE) return <div className="app-shell"><AppHeader /><div className="state-card page-state">Loading event...</div></div>;
-  if ((!PREVIEW_MODE && error) || !event) return <div className="app-shell"><AppHeader /><div className="state-card state-error page-state"><h2>Event unavailable</h2><p>We couldn't find this event.</p><button className="primary-button" onClick={() => navigate('/events')}>Back to explore</button></div></div>;
+  if ((!PREVIEW_MODE && error && !event) || !event) return <div className="app-shell"><AppHeader /><div className="state-card state-error page-state"><h2>Event unavailable</h2><p>We couldn't find this event.</p><button className="primary-button" onClick={() => navigate('/events')}>Back to explore</button></div></div>;
   const eventDate = formatEventDate(event.startTime);
 
   return (
@@ -85,7 +89,7 @@ const EventDetailScreen: FC = () => {
           </aside>
         </section>
         {notifications.length > 0 && <div className="notifications"><span className="eyebrow">LIVE UPDATES</span>{notifications.map((note, index) => <div key={`${note}-${index}`}>{note}</div>)}</div>}
-        <section className="participants-section"><div className="section-heading"><div><p className="eyebrow">THE CROWD</p><h2>Who's going</h2></div><span className="section-count">{event.attendeeCount} attendees</span></div>{event.attendees.length ? <div className="participant-stack">{event.attendees.map((participant) => <span key={participant.id} title={participant.email}>{participant.name.charAt(0).toUpperCase()}</span>)}</div> : <p className="muted-copy">Be the first to join this event.</p>}</section>
+        <section className="participants-section"><div className="section-heading"><div><p className="eyebrow">THE CROWD</p><h2>Who's going</h2></div><span className="section-count">{event.attendeeCount} attendees</span></div>{event.attendees?.length ? <div className="participant-stack">{event.attendees.map((participant) => <span key={participant.id} title={participant.email}>{participant.name.charAt(0).toUpperCase()}</span>)}</div> : <p className="muted-copy">Be the first to join this event.</p>}</section>
       </main>
     </div>
   );
